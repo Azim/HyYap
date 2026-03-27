@@ -20,7 +20,7 @@ jobs:
       - name: Get latest commit hash
         run: echo "LATEST_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
       - name: Get latest version
-        run: echo "VERSION=0.1.1" >> $GITHUB_ENV
+        run: echo "VERSION=0.0.1-SNAPSHOT" >> $GITHUB_ENV
       - name: Install xmllint
         run: sudo apt-get update && sudo apt-get install -y libxml2-utils
       - name: Get latest hytale version for ${{ matrix.hytale-tag }}
@@ -38,10 +38,13 @@ jobs:
           server-username: MAVEN_USERNAME
           server-password: MAVEN_PASSWORD
       - name: Build ${{ matrix.profile }} for ${{ matrix.hytale-tag }}
-        run: mvn clean deploy -P ${{ matrix.profile }} -Drevision=$VERSION-SNAPSHOT+$LATEST_COMMIT_HASH -Dhytale-version=$HYTALE_VERSION
+        run: mvn clean deploy -P ${{ matrix.profile }} -Drevision=$VERSION+$LATEST_COMMIT_HASH -Dhytale-version=$HYTALE_VERSION
       - name: Upload ${{ matrix.profile }} artifact
         uses: actions/upload-artifact@v6
         with:
-          name: HytaleMoonbaseTTS-${{ matrix.profile }} for ${{ matrix.hytale-tag }}
-          path: ./target/${{ matrix.profile }}/HytaleMoonbaseTTS-*.jar
+          name: HyYap-${{ matrix.profile }} for ${{ matrix.hytale-tag }}
+          path: ./target/${{ matrix.profile }}/HyYap-*.jar
           if-no-files-found: error
+      - name: Deploy ${{ matrix.profile }} for ${{ matrix.hytale-tag }}
+        run: mvn deploy -P ${{ matrix.profile }} -Drevision=$VERSION+$LATEST_COMMIT_HASH -Dhytale-version=$HYTALE_VERSION
+
