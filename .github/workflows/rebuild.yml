@@ -53,5 +53,5 @@ jobs:
           else
             UPLOAD_VERSION="$VERSION-$LATEST_COMMIT_HASH"
           fi
-          mvn --batch-mode deploy -P ${{ matrix.profile }} -Drevision=UPLOAD_VERSION -Dhytale-version=$HYTALE_VERSION -DaltReleaseDeploymentRepository=hytalemodding.snapshots::https://maven.hytalemodding.dev/snapshots
+          mvn --batch-mode deploy -P ${{ matrix.profile }} -Drevision=$UPLOAD_VERSION -Dhytale-version=$HYTALE_VERSION -DaltReleaseDeploymentRepository=hytalemodding.snapshots::https://maven.hytalemodding.dev/snapshots
 
