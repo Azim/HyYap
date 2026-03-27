@@ -1,4 +1,4 @@
-package icu.azim.tts.util;
+package icu.azim.hyyap.util;
 
 import com.hypixel.hytale.server.core.plugin.JavaPlugin;
 
