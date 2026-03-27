@@ -197,11 +197,11 @@
 
 	<distributionManagement>
 		<repository>
-			<id>hytalemodding-releases</id>
+			<id>hytalemodding.releases</id>
 			<url>https://maven.hytalemodding.dev/releases</url>
 		</repository>
 		<snapshotRepository>
-			<id>hytalemodding-snapshots</id>
+			<id>hytalemodding.snapshots</id>
 			<url>https://maven.hytalemodding.dev/snapshots</url>
 		</snapshotRepository>
 
