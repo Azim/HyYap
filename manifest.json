@@ -1,0 +1,19 @@
+{
+  "Group": "icu.azim",
+  "Name": "HyYap",
+  "Version": "${revision}",
+  "Description": "General purpose tts and voice chat utility library",
+  "Authors": [
+    {
+      "Name": "Azim",
+      "Url": "https://azim.icu"
+    }
+  ],
+  "Website": "https://github.com/Azim/HyYap/",
+  "ServerVersion": "${hytale-version}",
+  "Dependencies": {},
+  "OptionalDependencies": {},
+  "DisabledByDefault": false,
+  "IncludesAssetPack": false,
+  "Main": "icu.azim.hyyap.HyYapPlugin"
+}

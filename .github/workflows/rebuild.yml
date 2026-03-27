@@ -1,0 +1,47 @@
+name: Rebuild
+
+on:
+  push:
+
+env:
+  MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
+  MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        profile: [fatjar, with-libby]
+        hytale-tag: [release, pre-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Get latest commit hash
+        run: echo "LATEST_COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+      - name: Get latest version
+        run: echo "VERSION=0.1.1" >> $GITHUB_ENV
+      - name: Install xmllint
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils
+      - name: Get latest hytale version for ${{ matrix.hytale-tag }}
+        run: |
+          HYTALE_VERSION=$(curl -fsSL https://maven.hytale.com/${{ matrix.hytale-tag }}/com/hypixel/hytale/Server/maven-metadata.xml | xmllint --xpath "string(//metadata/versioning/latest)" -)
+          echo "Latest version: $HYTALE_VERSION"
+          echo "HYTALE_VERSION=$HYTALE_VERSION" >> $GITHUB_ENV
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: maven
+          server-id: hytalemodding-snapshots
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
+      - name: Build ${{ matrix.profile }} for ${{ matrix.hytale-tag }}
+        run: mvn clean deploy -P ${{ matrix.profile }} -Drevision=$VERSION-SNAPSHOT+$LATEST_COMMIT_HASH -Dhytale-version=$HYTALE_VERSION
+      - name: Upload ${{ matrix.profile }} artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: HytaleMoonbaseTTS-${{ matrix.profile }} for ${{ matrix.hytale-tag }}
+          path: ./target/${{ matrix.profile }}/HytaleMoonbaseTTS-*.jar
+          if-no-files-found: error
