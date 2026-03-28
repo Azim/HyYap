@@ -24,9 +24,16 @@ public class DectalkThread implements Runnable {
     @SuppressWarnings("unused")
     @Deprecated
     private String commandSuffix = "[:phoneme off][:error speak][:mode spell set][:mode spell off][:punct some]";
-    //FIXME per-plugin config? append reset commands after the text. move pre- and post- commands to plugin config 
+    //TODO per-plugin config? append reset commands after the text. move pre- and post- commands to plugin config 
     
-    
+
+    /**
+     * Synthesizes provided text using DECtalk engine. <br>
+     * Encodes result into List of ready-to-use opus frames
+     * 
+     * @param text Text to synthesize
+     * @return CompletableFuture<List<byte[]>> which completes to encoded synthesized text
+     */
     public CompletableFuture<List<byte[]>> speakAndEncode(String text){
         if (!TTSNative.isLoaded()) {
             HytaleLogger.get("TTS processing").atSevere().log("TTSNative is not loaded! see server start logs to find out why!");
@@ -81,7 +88,7 @@ public class DectalkThread implements Runnable {
         }
         List<byte[]> frames;
         try {
-            frames = HyYapPlugin.generateOpusFrames(audioData, 11025);
+            frames = HyYapPlugin.encodeOpusFramesMono(audioData, 11025);
             message.future.complete(frames);
         } catch (IOException | UnknownPlatformException e) {
             e.printStackTrace();

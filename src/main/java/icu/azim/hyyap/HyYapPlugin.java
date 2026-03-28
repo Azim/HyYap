@@ -25,9 +25,9 @@ public class HyYapPlugin extends JavaPlugin {
     private static final ScheduledExecutorService TTS_SCHEDULER = Executors.newSingleThreadScheduledExecutor();
     
     private ScheduledFuture<?> senderFuture = null; 
-    private BroadcastThread senderThread;
-    public BroadcastThread getSenderThread() {
-        return senderThread;
+    private BroadcastThread broadcastThread;
+    public BroadcastThread getBroadcastThread() {
+        return broadcastThread;
     }
     //FIXME i dont want to expose threads directly and should instead wrap it into proper api
     private ScheduledFuture<?> dectalkFuture = null;
@@ -49,8 +49,8 @@ public class HyYapPlugin extends JavaPlugin {
     
     @Override
     protected void setup() {
-        senderThread = new BroadcastThread(); 
-        senderFuture = SENDER_SCHEDULER.scheduleAtFixedRate(senderThread, 0, 20, TimeUnit.MILLISECONDS); //every 20 ms
+        broadcastThread = new BroadcastThread(); 
+        senderFuture = SENDER_SCHEDULER.scheduleAtFixedRate(broadcastThread, 0, 20, TimeUnit.MILLISECONDS); //every 20 ms
 
         dectalkThread = new DectalkThread();
         dectalkFuture = TTS_SCHEDULER.scheduleWithFixedDelay(dectalkThread, 0, 200, TimeUnit.MILLISECONDS); //5 times per second
@@ -63,7 +63,7 @@ public class HyYapPlugin extends JavaPlugin {
         if(dectalkFuture != null) dectalkFuture.cancel(false); 
         if(senderFuture != null) senderFuture.cancel(true);
     }
-    
+
     public static short[] generateBeep(double freqHz, double amplitude) { //i will keep it around for now, maybe will reuse for something later
         short[] samples = new short[FRAME_SIZE];
         double twoPiF = 2.0 * Math.PI * freqHz;
@@ -74,8 +74,15 @@ public class HyYapPlugin extends JavaPlugin {
         }
         return samples;
     }
-    
-    public static List<byte[]> generateOpusFrames(short[] samples, int sourceSampleRate) throws IOException, UnknownPlatformException{
+
+    /**
+     * Encodes audio into opus frames used by the game client
+     * @param samples input audio data
+     * @param sourceSampleRate sample rate
+     * @return list of encoded opus frames
+     */
+    public static List<byte[]> encodeOpusFramesMono(short[] samples, int sourceSampleRate) throws IOException, UnknownPlatformException{
+        //TODO stereo support
         //upsample to 48000
         int outputLength = (int) Math.round(samples.length * (double) SAMPLERATE / sourceSampleRate);
         short[] output = new short[outputLength];
