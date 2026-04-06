@@ -9,7 +9,7 @@
 		<maven.compiler.target>25</maven.compiler.target>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<hytale-version>2026.03.26-89796e57b</hytale-version>
-		<libdtc-version>1.0.0-626639d</libdtc-version>
+		<libdtc-version>1.0.0-b8cc175</libdtc-version>
 		<opus4j-version>2.1.0</opus4j-version>
 	</properties>
 
