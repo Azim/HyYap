@@ -32,7 +32,7 @@ public class DectalkThread implements Runnable {
      * Encodes result into List of ready-to-use opus frames
      * 
      * @param text Text to synthesize
-     * @return CompletableFuture<List<byte[]>> which completes to encoded synthesized text
+     * @return CompletableFuture&lt;List&lt;byte[]&gt;&gt; which completes to encoded synthesized text
      */
     public CompletableFuture<List<byte[]>> speakAndEncode(String text){
         if (!TTSNative.isLoaded()) {

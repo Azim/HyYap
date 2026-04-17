@@ -23,14 +23,15 @@ public class BroadcastThread implements Runnable {
     public BroadcastThread() {
     }
 
-    public record BroadcastData(UUID speaker, int entityId, List<byte[]> audioData, Collection<PlayerRef> receivers, Supplier<Boolean> isSubmerged, Supplier<Position> position, int opusTimestamp, @Deprecated boolean isPositionless) {
+    public record BroadcastData(UUID speaker, int entityId, List<byte[]> audioData, Collection<PlayerRef> receivers, Supplier<Boolean> isSubmerged, Supplier<Position> position, short sequenceNumber, int opusTimestamp) {
         BroadcastData advance() { //pop first opus frame and step opusTimestamp
             if (audioData.isEmpty()) {
+                HytaleLogger.get("TTS broadcast").atInfo().log("empty audiodata");
                 return this;//should never be called
             }
             List<byte[]> copy = new ArrayList<>(audioData);
             copy.removeFirst();
-            return new BroadcastData(speaker, entityId, copy, receivers, isSubmerged, position, opusTimestamp + HyYapPlugin.FRAME_SIZE, isPositionless);
+            return new BroadcastData(speaker, entityId, copy, receivers, isSubmerged, position, (short)(this.sequenceNumber+(short)1), opusTimestamp + HyYapPlugin.FRAME_SIZE);
         }
     }
     private ConcurrentHashMap<CompletableFuture<Void>, BroadcastData> toBroadcast = new ConcurrentHashMap<>();
@@ -54,40 +55,25 @@ public class BroadcastThread implements Runnable {
             
             for(PlayerRef receiver : data.receivers()) {
 
-                var voiceChannel = receiver.getPacketHandler().getChannel(StreamType.Voice);
+                var handler = receiver.getPacketHandler();
+                var voiceChannel = handler.getChannel(StreamType.Voice);
                 if (voiceChannel == null || !voiceChannel.isActive()) {
                     //player has voice chat disabled
                     HytaleLogger.get("TTS broadcast").atInfo().log("no active voice channel for "+receiver.getUsername()+"|"+receiver.getUuid());
                     continue;
                 }
 
-                //FIXME waiting for a fix when we could replace receiver's coordinates with null for more smooth positionless audio
-                if(data.isPositionless()) { //all this will be gone when that happens
-                    PositionSnapshot cachedposition = VoiceModule.get().getCachedPosition(receiver.getUuid());
-                    Position position = new Position(cachedposition.x(), cachedposition.y(), cachedposition.z());
-                    
-                    RelayedVoiceData relay = new RelayedVoiceData();
-                    relay.entityId = data.entityId();
-                    relay.sequenceNumber = sequenceNumber++;
-                    relay.timestamp = data.opusTimestamp();
-                    relay.speakerIsUnderwater = data.isSubmerged().get();
-                    relay.speakerPosition = position; 
-                    relay.opusData = currentFrameData;
-                    relay.speakerId = data.speaker();
-                    voiceChannel.writeAndFlush(relay);
-                } else {
-                    RelayedVoiceData relay = new RelayedVoiceData();
-                    relay.entityId = data.entityId();
-                    relay.sequenceNumber = sequenceNumber++; //still no info on what sequenceNumber is for, incrementing it with each packet just in case
-                    relay.timestamp = data.opusTimestamp();
-                    relay.speakerIsUnderwater = data.isSubmerged().get();
-                    relay.speakerPosition = data.position().get(); 
-                    relay.opusData = currentFrameData;
-                    relay.speakerId = data.speaker();
-                    voiceChannel.writeAndFlush(relay);
-                }
+
+                RelayedVoiceData relay = new RelayedVoiceData();
+                relay.entityId = data.entityId();
+                relay.sequenceNumber = data.sequenceNumber(); //still no info on what sequenceNumber is for, incrementing it with each packet just in case
+                relay.timestamp = data.opusTimestamp();
+                relay.speakerIsUnderwater = data.isSubmerged().get();
+                relay.speakerPosition = data.position().get(); 
+                relay.opusData = currentFrameData;
+                relay.speakerId = data.speaker();
+                voiceChannel.writeAndFlush(relay);
             }
-            
             toBroadcast.compute(entry.getKey(), (key, value) -> value.advance()); //pop processed frame
         }
         
@@ -131,7 +117,7 @@ public class BroadcastThread implements Runnable {
      * If after that, there are no receivers for a given broadcast, it's stopped and associated CompletableFuture is cancelled.
      * 
      * @param speaker UUID of the speaker to interrupt broadcast of
-     * @param receiver PlayerRef of the receiver to remove
+     * @param receivers Collection&lt;PlayerRef&gt; of the receivers to remove
      */
     public void stopBroadcastsTo(UUID speaker, Collection<PlayerRef> receivers) {
         toBroadcast.forEach((k, v) -> {
@@ -193,13 +179,7 @@ public class BroadcastThread implements Runnable {
         return broadcastPositionless(speaker, entityId, audioData, receivers, false);
     }
     public CompletableFuture<Void> broadcastPositionless(UUID speaker, int entityId, List<byte[]> audioData, Collection<PlayerRef> receivers, boolean isSubmerged) {
-        //broadcastAtPosition(speaker, entityId, audioData, receivers, ()->isSubmerged, () -> null); //FIXME update when the patch for positionless audio is implemented
-        
-        if(audioData.isEmpty() || receivers.isEmpty()) return CompletableFuture.completedFuture(null);
-        CompletableFuture<Void> future = new CompletableFuture<Void>();
-        BroadcastData newData = new BroadcastData(speaker, entityId, audioData, receivers, ()->isSubmerged, ()->null, 0, true);
-        toBroadcast.put(future, newData);
-        return future;
+        return broadcastAtPosition(speaker, entityId, audioData, receivers, ()->isSubmerged, () -> null);
     }
 
     public CompletableFuture<Void> broadcastAtPosition(UUID speaker, int entityId, List<byte[]> audioData, Collection<PlayerRef> receivers, boolean isSubmerged, Position position) {
@@ -208,7 +188,7 @@ public class BroadcastThread implements Runnable {
     public CompletableFuture<Void> broadcastAtPosition(UUID speaker, int entityId, List<byte[]> audioData, Collection<PlayerRef> receivers, Supplier<Boolean> isSubmerged, Supplier<Position> position) {
         if(audioData.isEmpty() || receivers.isEmpty()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> future = new CompletableFuture<Void>();
-        BroadcastData newData = new BroadcastData(speaker, entityId, audioData, receivers, isSubmerged, position, 0, false);
+        BroadcastData newData = new BroadcastData(speaker, entityId, audioData, receivers, isSubmerged, position, sequenceNumber++, 0);
         toBroadcast.put(future, newData);
         return future;
     }
